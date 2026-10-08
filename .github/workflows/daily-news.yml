@@ -1,14 +1,13 @@
 name: 🇨🇳 China Daily News
 
+# ตัวตั้งเวลาจริงคือ automation ข้างนอก
+# ที่ยิง workflow_dispatch ทุกวัน 08:17 น. เวลาไทย
+# cron ข้างล่างเป็นแค่สำรอง: GitHub ไม่เคยสร้าง schedule run ให้ repo นี้
 on:
-  schedule:
-    # 08:17 น. ไทย = 01:17 UTC เลื่อนออกจากนาทีที่ 0
-    - cron: '17 1 * * *'
-    # รอบสำรองถ้า GitHub ทิ้งรอบแรก: 08:47 น. ไทย
-    - cron: '47 1 * * *'
-    # ทดสอบ schedule วันนี้เท่านั้น: 10:50 น. ไทย = 03:50 UTC
-    - cron: '50 3 8 10 *'
   workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * *'
+    - cron: '47 1 * * *'
 
 jobs:
   send-news:

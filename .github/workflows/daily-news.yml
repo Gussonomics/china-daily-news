@@ -2,13 +2,12 @@ name: 🇨🇳 China Daily News
 
 on:
   schedule:
-    # รันทุกวัน 08:17 น. เวลาไทย — เลื่อนออกจากนาทีที่ 0
-    - cron: '17 8 * * *'
-      timezone: Asia/Bangkok
-    # ทดสอบ schedule ครั้งเดียว: 09:47 น. วันที่ 8 ต.ค. เท่านั้น ไม่ซ้ำทุกวัน
-    - cron: '47 9 8 10 *'
-      timezone: Asia/Bangkok
-
+    # 08:17 น. ไทย = 01:17 UTC เลื่อนออกจากนาทีที่ 0
+    - cron: '17 1 * * *'
+    # รอบสำรองถ้า GitHub ทิ้งรอบแรก: 08:47 น. ไทย
+    - cron: '47 1 * * *'
+    # ทดสอบ schedule วันนี้เท่านั้น: 10:50 น. ไทย = 03:50 UTC
+    - cron: '50 3 8 10 *'
   workflow_dispatch:
 
 jobs:
@@ -19,27 +18,46 @@ jobs:
     - name: 📥 ดาวน์โหลดโค้ด
       uses: actions/checkout@v4
 
+    - name: 📅 วันที่ไทย
+      id: date
+      run: echo "day=$(TZ=Asia/Bangkok date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+    - name: 🧰 เช็กว่าส่งวันนี้ไปแล้วหรือยัง
+      id: sent
+      uses: actions/cache/restore@v4
+      with:
+        path: .sent-today
+        key: china-daily-${{ steps.date.outputs.day }}
+
     - name: 🐍 ติดตั้ง Python
+      if: steps.sent.outputs.cache-hit != 'true'
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
     - name: 📦 ติดตั้ง library
-      run: |
-        pip install -r requirements.txt
+      if: steps.sent.outputs.cache-hit != 'true'
+      run: pip install -r requirements.txt
 
     - name: 🤖 รันบอทสรุปข่าว
+      if: steps.sent.outputs.cache-hit != 'true'
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      run: |
-        python src/bot.py
+      run: python src/bot.py
 
-    - name: ✅ แจ้งผลสำเร็จ
-      if: success()
-      run: echo "✅ ส่งข่าวสำเร็จ! $(date)"
+    - name: ✅ จดจำว่าส่งวันนี้แล้ว
+      if: success() && steps.sent.outputs.cache-hit != 'true'
+      run: date -u > .sent-today
 
-    - name: ❌ แจ้งข้อผิดพลาด
-      if: failure()
-      run: echo "❌ ล้มเหลว! $(date)"
+    - name: 💾 เก็บ marker ไม่ให้ส่งซ้ำวันเดียว
+      if: success() && steps.sent.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: .sent-today
+        key: china-daily-${{ steps.date.outputs.day }}
+
+    - name: ⏭️ ข้ามถ้าส่งไปแล้ววันนี้
+      if: steps.sent.outputs.cache-hit == 'true'
+      run: echo "Already sent on ${{ steps.date.outputs.day }}, skipping."

@@ -1,13 +1,14 @@
 name: 🇨🇳 China Daily News
 
 on:
-  # รันทุกวัน 08:17 น. เวลาไทย
-  # เลื่อนออกจากนาทีที่ 0 เพราะ GitHub มัก drop scheduled run ช่วงคิวแน่น
   schedule:
+    # รันทุกวัน 08:17 น. เวลาไทย — เลื่อนออกจากนาทีที่ 0
     - cron: '17 8 * * *'
       timezone: Asia/Bangkok
+    # ทดสอบ schedule ครั้งเดียว: 09:47 น. วันที่ 8 ต.ค. เท่านั้น ไม่ซ้ำทุกวัน
+    - cron: '47 9 8 10 *'
+      timezone: Asia/Bangkok
 
-  # อนุญาตให้รัน manual
   workflow_dispatch:
 
 jobs:
